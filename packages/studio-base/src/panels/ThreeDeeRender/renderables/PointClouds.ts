@@ -544,6 +544,14 @@ export class PointCloudHistoryRenderable extends Renderable<PointCloudHistoryUse
           this.#invalidError(message);
           return false;
         }
+      } else if (settings.colorField == "<distance>") {
+        packedColorReader = (view: DataView, pointOffset: number) => {
+          let x = xReader?.(view, pointOffset) ?? 0;
+          let y = yReader?.(view, pointOffset) ?? 0;
+          let z = zReader?.(view, pointOffset) ?? 0;
+
+          return Math.hypot(x, y, z);
+         }
       }
     }
 

@@ -283,7 +283,7 @@ export function colorModeSettingsFields<Settings extends ColorModeSettings & Bas
     fields.flatColor = { label: t("threeDee:flatColor"), input: "rgba", value: flatColor };
   } else if (colorMode !== "rgba-fields") {
     if (msgFields) {
-      const colorFieldOptions = msgFields.map((field) => ({ label: field, value: field }));
+      const colorFieldOptions = msgFields.map((field) => ({ label: field, value: field })).concat([{label: "<distance>", value: "<distance>"}]);
       const colorField =
         config.colorField ?? bestColorByField(msgFields, { supportsPackedRgbModes });
       fields.colorField = {
