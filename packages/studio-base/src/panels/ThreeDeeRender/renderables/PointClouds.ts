@@ -544,17 +544,18 @@ export class PointCloudHistoryRenderable extends Renderable<PointCloudHistoryUse
           this.#invalidError(message);
           return false;
         }
-      } else if (settings.colorField == "<distance>") {
-        packedColorReader = (view: DataView, pointOffset: number) => {
-          let x = xReader?.(view, pointOffset) ?? 0;
-          let y = yReader?.(view, pointOffset) ?? 0;
-          let z = zReader?.(view, pointOffset) ?? 0;
-
-          return Math.hypot(x, y, z);
-         }
       }
     }
 
+    if (settings.colorField == "<distance>") {
+      packedColorReader = (view: DataView, pointOffset: number) => {
+        return Math.hypot(
+          xReader?.(view, pointOffset) ?? 0,
+          yReader?.(view, pointOffset) ?? 0,
+          zReader?.(view, pointOffset) ?? 0
+        )
+        }
+    }
     if (minBytesPerPoint > stride) {
       const message = `PointCloud stride ${stride} is less than minimum bytes per point ${minBytesPerPoint}`;
       this.#invalidError(message);
