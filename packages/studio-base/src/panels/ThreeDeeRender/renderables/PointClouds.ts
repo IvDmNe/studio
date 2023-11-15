@@ -25,7 +25,7 @@ import {
 } from "@foxglove/studio-base/panels/ThreeDeeRender/renderables/pointExtensionUtils";
 import type { RosObject, RosValue } from "@foxglove/studio-base/players/types";
 
-import { colorHasTransparency, getColorConverter } from "./colorMode";
+import { colorHasTransparency, getColorConverter, colorFieldComputedPrefix} from "./colorMode";
 import { FieldReader, getReader, isSupportedField } from "./pointClouds/fieldReaders";
 import type { AnyRendererSubscription, IRenderer } from "../IRenderer";
 import { BaseUserData, Renderable } from "../Renderable";
@@ -61,9 +61,10 @@ type PointCloudFieldReaders = {
 
 type LayerSettingsPointClouds = LayerSettingsPointExtension & {
   stixelsEnabled: boolean;
+  colorFieldComputed: "distance" | undefined;
 };
 
-const DEFAULT_SETTINGS = { ...DEFAULT_POINT_SETTINGS, stixelsEnabled: false };
+const DEFAULT_SETTINGS = { ...DEFAULT_POINT_SETTINGS, stixelsEnabled: false, colorFieldComputed: undefined };
 
 type PointCloudHistoryUserData = BaseUserData & {
   settings: LayerSettingsPointClouds;
@@ -256,6 +257,10 @@ export class PointCloudHistoryRenderable extends Renderable<PointCloudHistoryUse
       });
     } else {
       material.size = settings.pointSize;
+    }
+
+    if (settings.colorField === colorFieldComputedPrefix + "distance") {
+      settings.colorFieldComputed = "distance";
     }
 
     const stixelsEnabledChanged = prevSettings.stixelsEnabled !== settings.stixelsEnabled;
@@ -547,7 +552,7 @@ export class PointCloudHistoryRenderable extends Renderable<PointCloudHistoryUse
       }
     }
 
-    if (settings.colorField == "<distance>") {
+    if (settings.colorFieldComputed === "distance") {
       packedColorReader = (view: DataView, pointOffset: number) => {
         return Math.hypot(
           xReader?.(view, pointOffset) ?? 0,

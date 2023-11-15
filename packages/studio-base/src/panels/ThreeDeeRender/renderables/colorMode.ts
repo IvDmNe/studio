@@ -18,6 +18,8 @@ const tempColor1 = { r: 0, g: 0, b: 0, a: 0 };
 const tempColor2 = { r: 0, g: 0, b: 0, a: 0 };
 export const NEEDS_MIN_MAX = ["gradient", "colormap"];
 
+export const colorFieldComputedPrefix = "_auto_";
+
 export interface ColorModeSettings {
   colorMode: "flat" | "gradient" | "colormap" | "rgb" | "rgba" | "rgba-fields";
   flatColor: string;
@@ -283,7 +285,11 @@ export function colorModeSettingsFields<Settings extends ColorModeSettings & Bas
     fields.flatColor = { label: t("threeDee:flatColor"), input: "rgba", value: flatColor };
   } else if (colorMode !== "rgba-fields") {
     if (msgFields) {
-      const colorFieldOptions = msgFields.map((field) => ({ label: field, value: field })).concat([{label: "<distance>", value: "<distance>"}]);
+
+      const colorFieldOptions = msgFields.map((field) => ({ label: field, value: field }));
+
+      colorFieldOptions.push({label: t("threeDee:ColorFieldComputedDistance"), value: colorFieldComputedPrefix + "distance"});
+
       const colorField =
         config.colorField ?? bestColorByField(msgFields, { supportsPackedRgbModes });
       fields.colorField = {
