@@ -80,6 +80,11 @@ export const Foxglove_PointCloud_Stixels: StoryObj = {
   render: () => <Foxglove_PointCloud colorMode="gradient" stixelsEnabled={true} />,
 };
 
+export const Foxglove_PointCloud_Distance: StoryObj = {
+  render: () => <Foxglove_PointCloud colorMode="gradient" colorField="distance"/>,
+
+};
+
 function Foxglove_PointCloud({
   pointShape = "circle",
   colorMode = "rgba-fields",
@@ -88,6 +93,7 @@ function Foxglove_PointCloud({
   stixelsEnabled = false,
   debugPicking = false,
   includeSettings = false,
+  colorField = "x",
 }: {
   pointShape?: "circle" | "square";
   colorMode?: "gradient" | "rgba-fields";
@@ -96,6 +102,7 @@ function Foxglove_PointCloud({
   stixelsEnabled?: boolean;
   debugPicking?: boolean;
   includeSettings?: boolean;
+  colorField?: "x" | "distance";
 }): JSX.Element {
   const topics: Topic[] = [
     { name: "/pointcloud", schemaName: "foxglove.PointCloud" },
@@ -207,7 +214,7 @@ function Foxglove_PointCloud({
               pointSize: 10,
               pointShape,
               colorMode,
-              colorField: "x",
+              colorField,
               gradient: ["#17b3f6", "#09e609d5"],
               minValue,
               maxValue,
