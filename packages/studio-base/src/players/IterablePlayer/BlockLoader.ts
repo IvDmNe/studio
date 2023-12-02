@@ -91,7 +91,7 @@ export class BlockLoader {
 
     this.#abortController.abort();
     this.#activeChangeCondvar.notifyAll();
-    log.debug(`Preloaded topics: ${[...topics].join(", ")}`);
+    log.debug(`Preloaded topics: ${Array.from(topics.keys()).join(", ")}`);
 
     // Update all the blocks with any missing topics
     for (const block of this.#blocks) {
@@ -113,7 +113,8 @@ export class BlockLoader {
   }
 
   /**
-   * Remove topics that are no longer requested to be preloaded from blocks to free up space
+   * Remove topics that are no longer requested to be preloaded or topics that will be re-loaded
+   * from blocks to free up space
    */
   #removeUnusedBlockTopics(): number {
     const topics = this.#topics;
@@ -127,8 +128,9 @@ export class BlockLoader {
         };
         const blockTopics = Object.keys(newMessagesByTopic);
         for (const topic of blockTopics) {
-          // remove topics that are no longer requested to be preloaded.
-          if (!topics.has(topic) && newMessagesByTopic[topic]) {
+          // remove topics that are no longer requested to be preloaded and topics that will
+          // be re-loaded (due to different subscription parameters)
+          if ((!topics.has(topic) || block.needTopics.has(topic)) && newMessagesByTopic[topic]) {
             for (const msg of newMessagesByTopic[topic]!) {
               blockBytesRemoved += msg.sizeInBytes;
             }
@@ -179,7 +181,7 @@ export class BlockLoader {
   }
 
   async #load(args: { progress: LoadArgs["progress"] }): Promise<void> {
-    const topics = this.#topics;
+    const topics = new Map(this.#topics);
 
     // Ignore changing the blocks if the topic list is empty
     if (topics.size === 0) {
@@ -263,6 +265,13 @@ export class BlockLoader {
           return;
         }
 
+        // While we were waiting for cursor data the topics we need to be loading may have changed.
+        // Check whether the topics are changed and abort this loading instance because the results
+        // may no longer be valid for the data we should be loading.
+        if (!_.isEqual(topics, this.#topics)) {
+          return;
+        }
+
         const messagesByTopic: Record<string, MessageEvent[]> = {};
 
         // Set all topics to empty arrays. Since our cursor requested all the topicsToFetch we either will
@@ -318,9 +327,9 @@ export class BlockLoader {
           if (totalBlockSizeBytes > this.#maxCacheSize) {
             this.#problemManager.addProblem("cache-full", {
               severity: "error",
-              message: `Cache is full. Preloading for topics [${Array.from(topicsToFetch).join(
-                ", ",
-              )}] has stopped on block ${currentBlockId + 1}/${this.#blocks.length}.`,
+              message: `Cache is full. Preloading for topics [${Array.from(
+                topicsToFetch.keys(),
+              ).join(", ")}] has stopped on block ${currentBlockId + 1}/${this.#blocks.length}.`,
               tip: "Try reducing the number of topics that require preloading at a given time (e.g. in plots), or try to reduce the time range of the file.",
             });
             // We need to emit progress here so the player will emit a new state
@@ -331,6 +340,19 @@ export class BlockLoader {
         }
 
         const existingBlock = this.#blocks[currentBlockId];
+
+        // Calculate size of messages in the existing block that will be overridden.
+        // These have to be taken into account when calculating the size of the new block.
+        let overridenBlockMessagesSize = 0;
+        for (const topic of Object.keys(messagesByTopic)) {
+          const messages = existingBlock?.messagesByTopic[topic];
+          if (messages) {
+            overridenBlockMessagesSize += messages.reduce((acc, msg) => acc + msg.sizeInBytes, 0);
+          }
+        }
+        const newBlockSizeInBytes =
+          (existingBlock?.sizeInBytes ?? 0) - overridenBlockMessagesSize + sizeInBytes;
+
         this.#blocks[currentBlockId] = {
           needTopics: new Map(),
           messagesByTopic: {
@@ -338,8 +360,12 @@ export class BlockLoader {
             // Any new topics override the same previous topic
             ...messagesByTopic,
           },
-          sizeInBytes: (existingBlock?.sizeInBytes ?? 0) + sizeInBytes,
+          sizeInBytes: newBlockSizeInBytes,
         };
+
+        // Subtract the size of overridden messages from the the total size of all blocks.
+        // (The size of new messages is already added above).
+        totalBlockSizeBytes -= overridenBlockMessagesSize;
 
         progress(this.#calculateProgress(topics));
       }

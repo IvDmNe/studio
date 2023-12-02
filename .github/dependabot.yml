@@ -20,12 +20,6 @@ updates:
       emotion:
         patterns:
           - "@emotion/*"
-      electron:
-        patterns:
-          - "electron"
-          - "electron-*"
-          - "app-builder-lib"
-          - "builder-util"
       jest:
         patterns:
           - "jest"
@@ -40,11 +34,6 @@ updates:
       babel:
         patterns:
           - "@babel/*"
-      monaco-editor:
-        patterns:
-          - "monaco-editor"
-          - "monaco-editor-webpack-plugin"
-          - "react-monaco-editor"
 
   - package-ecosystem: "github-actions"
     directory: "/"

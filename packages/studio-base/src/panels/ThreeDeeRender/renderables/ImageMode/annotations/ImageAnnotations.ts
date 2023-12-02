@@ -9,6 +9,7 @@ import { PinholeCameraModel } from "@foxglove/den/image";
 import { ImageAnnotations as FoxgloveImageAnnotations } from "@foxglove/schemas";
 import { Immutable, MessageEvent, SettingsTreeAction, Topic } from "@foxglove/studio";
 import { Path } from "@foxglove/studio-base/panels/ThreeDeeRender/LayerErrors";
+import { onlyLastByTopicMessage } from "@foxglove/studio-base/panels/ThreeDeeRender/SceneExtension";
 import {
   ImageMarker as RosImageMarker,
   ImageMarkerArray as RosImageMarkerArray,
@@ -23,7 +24,7 @@ import { IMAGE_ANNOTATIONS_DATATYPES } from "../../../foxglove";
 import { IMAGE_MARKER_ARRAY_DATATYPES, IMAGE_MARKER_DATATYPES } from "../../../ros";
 import { topicIsConvertibleToSchema } from "../../../topicIsConvertibleToSchema";
 import { sortPrefixMatchesToFront } from "../../Images/topicPrefixMatching";
-import { MessageHandler, MessageRenderState } from "../MessageHandler";
+import { IMessageHandler, MessageRenderState } from "../MessageHandler";
 
 const MISSING_SYNCHRONIZED_ANNOTATION = "MISSING_SYNCHRONIZED_ANNOTATION";
 
@@ -39,7 +40,7 @@ interface ImageAnnotationsContext {
   updateConfig(updateHandler: (draft: ImageModeConfig) => void): void;
   updateSettingsTree(): void;
   labelPool: LabelPool;
-  messageHandler: MessageHandler;
+  messageHandler: IMessageHandler;
   addSettingsError(path: Path, errorId: string, errorMessage: string): void;
   removeSettingsError(path: Path, errorId: string): void;
 }
@@ -91,9 +92,20 @@ export class ImageAnnotations extends THREE.Object3D {
       {
         type: "schema",
         schemaNames: ALL_SUPPORTED_ANNOTATION_SCHEMAS,
-        subscription: { handler: this.#context.messageHandler.handleAnnotations },
+        subscription: {
+          handler: this.#context.messageHandler.handleAnnotations,
+          filterQueue: this.#filterMessageQueue.bind(this),
+        },
       },
     ];
+  }
+
+  #filterMessageQueue<T>(msgs: MessageEvent<T>[]): MessageEvent<T>[] {
+    // if sync annotations not active, only take the last message for each topic
+    if (this.#context.config().synchronize !== true) {
+      return onlyLastByTopicMessage(msgs);
+    }
+    return msgs;
   }
 
   public dispose(): void {
