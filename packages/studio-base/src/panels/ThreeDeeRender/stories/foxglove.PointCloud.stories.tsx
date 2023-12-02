@@ -641,13 +641,7 @@ export const Foxglove_PointCloud_Distance: StoryObj = {
   render: () => <Foxglove_PointCloud_Distance_Base />,
 };
 
-function Foxglove_PointCloud_Distance_Base({
-  minValue,
-  maxValue,
-}: {
-  minValue?: number;
-  maxValue?: number;
-}): JSX.Element {
+function Foxglove_PointCloud_Distance_Base(): JSX.Element {
   const topics: Topic[] = [
     { name: "/pointcloud", schemaName: "foxglove.PointCloud" },
     { name: "/tf", schemaName: "geometry_msgs/TransformStamped" },
@@ -725,8 +719,6 @@ function Foxglove_PointCloud_Distance_Base({
             "/pointcloud": {
               visible: true,
               pointSize: 5,
-              minValue,
-              maxValue,
               colorMode: "colormap",
               colorField: "_auto_distance",
             },
