@@ -207,7 +207,6 @@ export default function TimeBasedChart(props: Props): JSX.Element {
   );
 
   const provided = useProvider(view, getBounds, mergeNormal, data, provider ?? downsampler);
-
   const typedProvided = useProvider(view, getTypedBounds, mergeTyped, typedData, typedProvider);
 
   React.useEffect(() => {
@@ -347,20 +346,21 @@ export default function TimeBasedChart(props: Props): JSX.Element {
     const tooltipItems: { item: TimeBasedChartTooltipData; element: RpcElement }[] = [];
 
     for (const element of elements) {
-      if (!element.data) {
+      const { data: datum } = element;
+      if (datum == undefined) {
         continue;
       }
 
-      const datum = element.data;
-      if (datum.value == undefined) {
+      const { value, constantName, states } = datum;
+      if (value == undefined && states == undefined) {
         continue;
       }
 
       tooltipItems.push({
         item: {
           datasetIndex: element.datasetIndex,
-          value: datum.value,
-          constantName: datum.constantName,
+          value: value ?? (states ?? []).join(", "),
+          constantName,
         },
         element,
       });
